@@ -1,0 +1,9 @@
+[general]
+name=NNPA Reporting
+description=NNPA Reporting tool
+about=About this minimal plugin
+version=1.0
+qgisMinimumVersion=3.0
+author=Lutra Consulting
+email=info@lutraconsulting.co.uk
+repository=https://github.com/lutraconsulting/qgis-nnpa-reporting
