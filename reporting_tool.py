@@ -160,8 +160,10 @@ class ReportingTool:
                 ]
             )
             root_item.addChild(item)
+
+        total_count = sum(item["count"] for item in feature_dict.values())
         self.dialog.ui.treeResults.expandItem(root_item)
-        self.dialog.ui.lbTotal.setText(f"Total: {len(feature_dict)}")
+        self.dialog.ui.lbTotal.setText(f"Total: {total_count}")
 
 
 def parse_precision(field):
