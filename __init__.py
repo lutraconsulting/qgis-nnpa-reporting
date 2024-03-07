@@ -13,16 +13,4 @@ from .reporting_tool import ReportingTool
 
 
 def classFactory(iface):
-    # try:
-    #     import pydevd_pycharm
-    #
-    #     pydevd_pycharm.settrace(
-    #         "localhost",
-    #         port=1234,
-    #         stdoutToServer=True,
-    #         stderrToServer=True,
-    #         suspend=False,
-    #     )
-    # except:
-    #     pass
     return ReportingTool(iface)

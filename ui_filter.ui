@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>693</width>
-    <height>434</height>
+    <width>894</width>
+    <height>486</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -250,17 +250,41 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="label_12">
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>Features matching the criteria</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QLabel" name="lbFeatures">
+       <property name="font">
+        <font>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Features matching the criteria</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_5">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="lbTotal">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QTreeWidget" name="treeResults">
