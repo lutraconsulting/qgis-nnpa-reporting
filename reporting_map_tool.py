@@ -12,6 +12,8 @@ from qgis.gui import QgsMapTool, QgsRubberBand
 
 
 class CoordinateCaptureMapTool(QgsMapTool):
+    """A class fot handling map tool mouse events"""
+
     mouseReleased = pyqtSignal(QgsPoint, QgsPoint)
     deactivated = pyqtSignal()
 

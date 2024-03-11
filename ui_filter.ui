@@ -180,7 +180,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="loadCsv">
+      <widget class="QToolButton" name="btLoadCsv">
        <property name="toolTip">
         <string extracomment="Select a .csv file"/>
        </property>
