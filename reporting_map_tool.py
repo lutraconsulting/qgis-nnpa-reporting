@@ -1,14 +1,19 @@
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtCore import pyqtSignal, Qt
-from qgis.core import QgsRectangle, QgsGeometry, QgsPoint, QgsPointXY, QgsWkbTypes, QgsApplication
+from qgis.core import (
+    QgsRectangle,
+    QgsGeometry,
+    QgsPoint,
+    QgsPointXY,
+    QgsWkbTypes,
+    QgsApplication,
+)
 from qgis.gui import QgsMapTool, QgsRubberBand
-
 
 
 class CoordinateCaptureMapTool(QgsMapTool):
     mouseReleased = pyqtSignal(QgsPoint, QgsPoint)
     deactivated = pyqtSignal()
-
 
     def __init__(self, canvas):
         super(CoordinateCaptureMapTool, self).__init__(canvas)
@@ -16,7 +21,7 @@ class CoordinateCaptureMapTool(QgsMapTool):
         self.mapCanvas = canvas
         self.rubberBand = QgsRubberBand(self.mapCanvas, QgsWkbTypes.PolygonGeometry)
         self.rubberBand.setColor(Qt.red)
-        self.rubberBand.setFillColor(QColor(255, 0, 0, 127)) # semi-transparent red
+        self.rubberBand.setFillColor(QColor(255, 0, 0, 127))  # semi-transparent red
         self.rubberBand.setWidth(1)
         self.setCursor(QgsApplication.getThemeCursor(QgsApplication.Cursor.CrossHair))
         self.press_point = None
@@ -25,11 +30,7 @@ class CoordinateCaptureMapTool(QgsMapTool):
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.pressed = True
-            self.press_point = QgsPoint(
-                self.mapCanvas.getCoordinateTransform().toMapCoordinates(e.x(), e.y())
-            )
-
-
+            self.press_point = QgsPoint(e.mapPoint())
             rect = QgsRectangle(
                 self.mapCanvas.getCoordinateTransform().toMapCoordinates(
                     e.x() - 1, e.y() - 1
@@ -42,9 +43,6 @@ class CoordinateCaptureMapTool(QgsMapTool):
             self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
             self.rubberBand.addGeometry(geom)
             self.rubberBand.show()
-
-        elif e.button() == Qt.RightButton:
-            pass
 
     def canvasReleaseEvent(self, e):
         if e.button() == Qt.LeftButton:
