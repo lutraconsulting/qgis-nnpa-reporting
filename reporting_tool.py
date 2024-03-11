@@ -103,16 +103,18 @@ class ReportingTool:
             if sel_feat["Common_Nam"] not in output_dict:
                 # the first occurrence
                 output_dict[sel_feat["Common_Nam"]] = {
-                    "date": sel_feat["Sample_Dat"],
+                    "date": [sel_feat["Sample_Dat"]],
                     "precision_min": precision_dict,
                     "precision_max": precision_dict,
                     "count": 1,
                 }
             else:
-                # the feature is already in the dict -> increase count and update precision
+                # the feature is already in the dict -> increase count, update date and precision fields
                 dict_feature = output_dict[sel_feat["Common_Nam"]]
 
                 dict_feature["count"] += 1
+                dict_feature["date"].append(sel_feat["Sample_Dat"])
+
                 highest_key = max(
                     dict_feature["precision_max"].keys() | precision_dict.keys()
                 )
@@ -160,7 +162,7 @@ class ReportingTool:
             item = TreeWidgetItem(
                 [
                     key,
-                    value["date"],
+                    ", ".join(set(value["date"])),
                     list(value["precision_min"].values())[0],
                     list(value["precision_max"].values())[0],
                     str(value["count"])
