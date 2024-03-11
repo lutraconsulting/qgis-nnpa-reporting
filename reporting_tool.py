@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QAction, QTreeWidgetItem
 from qgis.PyQt import Qt
-from qgis.core import QgsRectangle, QgsFeatureRequest, QgsPointXY
+from qgis.core import QgsRectangle, QgsFeatureRequest, QgsPointXY, QgsGeometry
 from PyQt5.QtCore import Qt
 
 from .reporting_map_tool import CoordinateCaptureMapTool
@@ -69,8 +69,9 @@ class ReportingTool:
         wanted_string_prec = f"('{wanted_string_prec}')"
         precision_filter = f'"Precision" in {wanted_string_prec}'
 
-        # spatial filter
-        aoi_buffered = self.aoi.buffered(self.dialog.ui.Buffer.value())
+        # buffer
+        buffer_value = self.dialog.qgsDoubleSpinBoxBuffer.value()
+        rect = QgsGeometry.fromRect(self.aoi)
 
         # exclusion filter
         excluded_names = (
@@ -86,9 +87,10 @@ class ReportingTool:
 
         req_filter = (
             QgsFeatureRequest()
-            .setFilterRect(aoi_buffered)
+            .setDistanceWithin(rect, buffer_value)
             .setFilterExpression(expression_filter)
             .setFlags(QgsFeatureRequest.NoGeometry)
+            .setFlags(QgsFeatureRequest.ExactIntersect)
             .setSubsetOfAttributes(fields, self.al.fields())
         )
 
@@ -165,7 +167,7 @@ class ReportingTool:
                     ", ".join(set(value["date"])),
                     list(value["precision_min"].values())[0],
                     list(value["precision_max"].values())[0],
-                    str(value["count"])
+                    str(value["count"]),
                 ]
             )
             root_item.addChild(item)

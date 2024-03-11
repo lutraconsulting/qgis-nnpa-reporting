@@ -214,9 +214,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="Buffer">
+      <widget class="QgsDoubleSpinBox" name="qgsDoubleSpinBoxBuffer">
        <property name="maximum">
-        <number>2147483647</number>
+        <double>2147483647.000000000000000</double>
        </property>
       </widget>
      </item>
@@ -321,6 +321,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>qgsdoublespinbox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
