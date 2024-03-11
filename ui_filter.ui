@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>894</width>
+    <width>656</width>
     <height>486</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Reporting tool</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -180,7 +180,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="loadCsv">
+      <widget class="QToolButton" name="btLoadCsv">
        <property name="toolTip">
         <string extracomment="Select a .csv file"/>
        </property>
@@ -214,9 +214,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="Buffer">
+      <widget class="QgsDoubleSpinBox" name="qgsDoubleSpinBoxBuffer">
        <property name="maximum">
-        <number>2147483647</number>
+        <double>2147483647.000000000000000</double>
        </property>
       </widget>
      </item>
@@ -297,12 +297,6 @@
      <property name="columnCount">
       <number>4</number>
      </property>
-     <attribute name="headerCascadingSectionResizes">
-      <bool>true</bool>
-     </attribute>
-     <attribute name="headerMinimumSectionSize">
-      <number>70</number>
-     </attribute>
      <column>
       <property name="text">
        <string notr="true">1</string>
@@ -325,21 +319,15 @@
      </column>
     </widget>
    </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>qgsdoublespinbox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

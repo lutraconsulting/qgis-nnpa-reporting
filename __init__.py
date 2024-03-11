@@ -1,5 +1,5 @@
 # -----------------------------------------------------------
-# Copyright (C) 2015 Martin Dobias
+# Copyright (C) 2024 Lutra Consulting
 # -----------------------------------------------------------
 # Licensed under the terms of GNU GPL 2
 #
