@@ -1,3 +1,4 @@
+from PyQt5.QtGui import QColor
 from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis._core import QgsRectangle, QgsGeometry, QgsPoint
 from qgis.gui import QgsMapTool, QgsRubberBand
@@ -16,6 +17,7 @@ class CoordinateCaptureMapTool(QgsMapTool):
         self.mapCanvas = canvas
         self.rubberBand = QgsRubberBand(self.mapCanvas, QgsWkbTypes.PolygonGeometry)
         self.rubberBand.setColor(Qt.red)
+        self.rubberBand.setFillColor(QColor(255, 0, 0, 127)) # semi-transparent red
         self.rubberBand.setWidth(1)
         self.setCursor(QgsApplication.getThemeCursor(QgsApplication.Cursor.CrossHair))
         self.press_point = None
@@ -54,7 +56,7 @@ class CoordinateCaptureMapTool(QgsMapTool):
             )
             self.mouseReleased.emit(self.press_point, release_point)
         elif e.button() == Qt.RightButton:
-            self.deactivate()
+            self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
 
     def canvasMoveEvent(self, e):
         if self.pressed:
