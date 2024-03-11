@@ -2,7 +2,7 @@ import csv
 from os import path
 
 from PyQt5 import uic
-from PyQt5.QtWidgets import QDialog, QHeaderView, QFileDialog
+from PyQt5.QtWidgets import QDialog, QHeaderView, QFileDialog, QTreeWidgetItem
 
 ui_file = path.join(path.dirname(__file__), "ui_filter.ui")
 
@@ -37,3 +37,14 @@ class OutputDialog(QDialog):
                 for row in reader:
                     self.excluded_names.append(row["Common Name"])
 
+
+class TreeWidgetItem(QTreeWidgetItem):
+    def __init__(self, parent=None):
+        QTreeWidgetItem.__init__(self, parent)
+
+    def __lt__(self, other_item):
+        column = self.treeWidget().sortColumn()
+        try:
+            return float(self.text(column)) > float(other_item.text(column))
+        except ValueError:
+            return self.text(column) > other_item.text(column)
