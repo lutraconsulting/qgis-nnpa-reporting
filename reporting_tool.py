@@ -164,10 +164,10 @@ class ReportingTool:
             item = TreeWidgetItem(
                 [
                     key,
+                    str(value["count"]),
                     ", ".join(set(value["date"])),
                     list(value["precision_min"].values())[0],
                     list(value["precision_max"].values())[0],
-                    str(value["count"]),
                 ]
             )
             root_item.addChild(item)

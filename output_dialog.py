@@ -9,19 +9,20 @@ ui_file = path.join(path.dirname(__file__), "ui_filter.ui")
 
 class OutputDialog(QDialog):
     """Dialog to display the selected features"""
+
     def __init__(self):
         super().__init__()
         self.ui = uic.loadUi(ui_file, self)
         self.ui.treeResults.setHeaderLabels(
             [
                 "Common Name",
-                "Observation Date",
-                "Precision Min [m]",
-                "Precision Max [m]",
                 "Count",
+                "Observation Date",
+                "Precision Min",
+                "Precision Max",
             ]
         )
-        self.ui.treeResults.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.treeResults.header().resizeSections(QHeaderView.ResizeToContents)
         self.ui.loadCsv.clicked.connect(self.load_csv)
         self.excluded_names = []
 
