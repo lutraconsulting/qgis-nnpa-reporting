@@ -1,8 +1,8 @@
 import csv
 from os import path
 
-from PyQt5 import uic
-from PyQt5.QtWidgets import QDialog, QHeaderView, QFileDialog, QTreeWidgetItem
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QFileDialog, QTreeWidgetItem
 
 ui_file = path.join(path.dirname(__file__), "ui_filter.ui")
 

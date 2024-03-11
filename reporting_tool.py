@@ -1,7 +1,5 @@
-from PyQt5.QtWidgets import QAction, QTreeWidgetItem
-from qgis.PyQt import Qt
+from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsRectangle, QgsFeatureRequest, QgsPointXY, QgsGeometry
-from PyQt5.QtCore import Qt
 
 from .reporting_map_tool import CoordinateCaptureMapTool
 from .output_dialog import OutputDialog, TreeWidgetItem
@@ -16,12 +14,10 @@ class ReportingTool:
 
         self.mapTool = CoordinateCaptureMapTool(self.iface.mapCanvas())
         self.mapTool.mouseReleased.connect(self.mouseReleased)
-        self.mapTool.deactivated.connect(self.mtDeactivated)
-        # self.mapTool.mousePressed.connect(self.mousePressed)
         self.aoi = None
-        # self.setupUI(self)
         self.dialog = OutputDialog()
         self.populate_ranges()
+        self.mapTool.deactivated.connect(self.dialog.hide)
 
     def initGui(self):
         self.action = QAction("Go!", self.iface.mainWindow())
@@ -37,14 +33,14 @@ class ReportingTool:
         self.dialog.show()
 
     def mouseReleased(self, point1, point2):
-        if point1.x() == point2.x() and point1.y() == point2.y():
-            point = self.mapTool.toLayerCoordinatesV2(self.al, point1)
-            self.aoi = point.boundingBox()
+        point1 = self.mapTool.toLayerCoordinatesV2(self.al, point1)
+        point2 = self.mapTool.toLayerCoordinatesV2(self.al, point2)
+        if point1 == point2:
+            self.aoi = QgsRectangle(
+                point1.x() - 1, point1.y() - 1, point1.x() + 1, point1.y() + 1
+            )
         else:
-            point1 = self.mapTool.toLayerCoordinatesV2(self.al, point1)
-            point2 = self.mapTool.toLayerCoordinatesV2(self.al, point2)
-            rect = QgsRectangle(QgsPointXY(point1), QgsPointXY(point2))
-            self.aoi = rect
+            self.aoi = QgsRectangle(QgsPointXY(point1), QgsPointXY(point2))
         self.build_filter()
 
     def build_filter(self):
@@ -87,7 +83,7 @@ class ReportingTool:
 
         req_filter = (
             QgsFeatureRequest()
-            .setDistanceWithin(rect, buffer_value)
+            .setDistanceWithin(rect, 5000)
             .setFilterExpression(expression_filter)
             .setFlags(QgsFeatureRequest.NoGeometry)
             .setFlags(QgsFeatureRequest.ExactIntersect)
@@ -129,9 +125,6 @@ class ReportingTool:
                     dict_feature["precision_min"] = precision_dict
 
         self.return_result(output_dict)
-
-    def mtDeactivated(self):
-        self.dialog.hide()
 
     def populate_ranges(self):
         """Populate the precision fields in the plugin dialog"""

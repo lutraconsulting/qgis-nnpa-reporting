@@ -1,8 +1,7 @@
-from PyQt5.QtGui import QColor
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtCore import pyqtSignal, Qt
-from qgis._core import QgsRectangle, QgsGeometry, QgsPoint
+from qgis.core import QgsRectangle, QgsGeometry, QgsPoint, QgsPointXY, QgsWkbTypes, QgsApplication
 from qgis.gui import QgsMapTool, QgsRubberBand
-from qgis.core import QgsPointXY, QgsWkbTypes, QgsApplication
 
 
 
@@ -26,11 +25,10 @@ class CoordinateCaptureMapTool(QgsMapTool):
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.pressed = True
-            press_point = QgsPoint(
+            self.press_point = QgsPoint(
                 self.mapCanvas.getCoordinateTransform().toMapCoordinates(e.x(), e.y())
             )
 
-            self.press_point = press_point
 
             rect = QgsRectangle(
                 self.mapCanvas.getCoordinateTransform().toMapCoordinates(
