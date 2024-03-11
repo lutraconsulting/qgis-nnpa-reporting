@@ -1,13 +1,10 @@
-from PyQt5.QtWidgets import QAction, QMessageBox, QTreeWidgetItem
-from PyQt5.uic import loadUiType
-from qgis._core import QgsRectangle, QgsFeatureRequest
-from qgis.core import QgsPointXY
-from .reporting_map_tool import CoordinateCaptureMapTool
-from .output_dialog import OutputDialog
-from os import path
-from PyQt5 import uic
+from PyQt5.QtWidgets import QAction, QTreeWidgetItem
+from qgis.PyQt import Qt
+from qgis.core import QgsRectangle, QgsFeatureRequest, QgsPointXY
+from PyQt5.QtCore import Qt
 
-# FORM_CLASS, _ = loadUiType(path.join(path.dirname(__file__), "ui_filter.ui"))
+from .reporting_map_tool import CoordinateCaptureMapTool
+from .output_dialog import OutputDialog, TreeWidgetItem
 
 
 class ReportingTool:
@@ -56,8 +53,12 @@ class ReportingTool:
         fields = ["Common_Nam", "Sample_Dat", "Precision"]
 
         # precision filter
-        prec_min = parse_precision(self.dialog.ui.cbPrecisionMin.currentText())
-        prec_max = parse_precision(self.dialog.ui.cbPrecisionMax.currentText())
+        prec_min = list(parse_precision([self.dialog.ui.cbPrecisionMin.currentText()]))[
+            0
+        ]
+        prec_max = list(parse_precision([self.dialog.ui.cbPrecisionMax.currentText()]))[
+            0
+        ]
         unique_precision_dict = self.get_unique_precision_values()
 
         wanted_list_prec = []
@@ -87,6 +88,7 @@ class ReportingTool:
             QgsFeatureRequest()
             .setFilterRect(aoi_buffered)
             .setFilterExpression(expression_filter)
+            .setFlags(QgsFeatureRequest.NoGeometry)
             .setSubsetOfAttributes(fields, self.al.fields())
         )
 
@@ -97,23 +99,30 @@ class ReportingTool:
         selected_features = self.al.getFeatures(req_filter)
         output_dict = {}
         for sel_feat in selected_features:
-            precision = parse_precision(sel_feat["precision"])
+            precision_dict = parse_precision([sel_feat["precision"]])
             if sel_feat["Common_Nam"] not in output_dict:
                 # the first occurrence
                 output_dict[sel_feat["Common_Nam"]] = {
                     "date": sel_feat["Sample_Dat"],
-                    "precision_min": precision,
-                    "precision_max": precision,
+                    "precision_min": precision_dict,
+                    "precision_max": precision_dict,
                     "count": 1,
                 }
             else:
                 # the feature is already in the dict -> increase count and update precision
                 dict_feature = output_dict[sel_feat["Common_Nam"]]
+
                 dict_feature["count"] += 1
-                if precision > dict_feature["precision_max"]:
-                    dict_feature["precision_max"] = precision
-                if precision < dict_feature["precision_min"]:
-                    dict_feature["precision_min"] = precision
+                highest_key = max(
+                    dict_feature["precision_max"].keys() | precision_dict.keys()
+                )
+                lowest_key = min(
+                    dict_feature["precision_min"].keys() | precision_dict.keys()
+                )
+                if highest_key in precision_dict:
+                    dict_feature["precision_max"] = precision_dict
+                elif lowest_key in precision_dict:
+                    dict_feature["precision_min"] = precision_dict
 
         self.return_result(output_dict)
 
@@ -139,24 +148,22 @@ class ReportingTool:
         fields = self.al.fields()
         precision_idx = fields.indexFromName("Precision")
         unique_list = self.al.uniqueValues(precision_idx)
-        unique_precision_dict = {}
-        for item in unique_list:
-            unique_precision_dict[parse_precision(item)] = item
-        return unique_precision_dict
+        return parse_precision(unique_list)
 
     def return_result(self, feature_dict):
         """Display the selected features in the widget"""
         self.dialog.ui.treeResults.clear()
 
         root_item = self.dialog.ui.treeResults.invisibleRootItem()
+        print("Not matching: ")
         for key, value in feature_dict.items():
-            item = QTreeWidgetItem(
+            item = TreeWidgetItem(
                 [
                     key,
                     value["date"],
-                    str(value["precision_min"]),
-                    str(value["precision_max"]),
-                    str(value["count"]),
+                    list(value["precision_min"].values())[0],
+                    list(value["precision_max"].values())[0],
+                    str(value["count"])
                 ]
             )
             root_item.addChild(item)
@@ -164,14 +171,18 @@ class ReportingTool:
         total_count = sum(item["count"] for item in feature_dict.values())
         self.dialog.ui.treeResults.expandItem(root_item)
         self.dialog.ui.lbTotal.setText(f"Total: {total_count}")
+        self.dialog.show()
 
 
-def parse_precision(field):
+def parse_precision(fields: list) -> dict:
     """Converts to integer in meters
-    100m -> 100
-    10km -> 10 000
+    ['100m', '10km'] -> {100: '100m', 10 000: '10km'}
     """
-    unit = field.lstrip("0123456789")
-    number = field.rstrip(unit)
-    meters = int(number) * 1000 if unit == "km" else int(number)
-    return meters
+
+    precision_dict = {}
+    for field in fields:
+        unit = field.lstrip("0123456789")
+        number = field.rstrip(unit)
+        meters = int(number) * 1000 if unit == "km" else int(number)
+        precision_dict[meters] = field
+    return precision_dict
