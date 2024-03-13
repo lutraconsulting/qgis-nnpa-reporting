@@ -1,27 +1,24 @@
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis.core import (
     QgsRectangle,
     QgsGeometry,
-    QgsPoint,
-    QgsPointXY,
-    QgsWkbTypes,
     QgsApplication,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 
+from .output_dialog import OutputDialog
 
-class CoordinateCaptureMapTool(QgsMapTool):
+
+class ReportingMapTool(QgsMapTool):
     """A class fot handling map tool mouse events"""
 
-    mouseReleased = pyqtSignal(QgsPoint, QgsPoint)
-    deactivated = pyqtSignal()
+    def __init__(self, canvas, layer):
+        super(ReportingMapTool, self).__init__(canvas)
 
-    def __init__(self, canvas):
-        super(CoordinateCaptureMapTool, self).__init__(canvas)
-
-        self.mapCanvas = canvas
-        self.rubberBand = QgsRubberBand(self.mapCanvas, QgsWkbTypes.PolygonGeometry)
+        self.layer = layer
+        self.dialog = OutputDialog(self.layer)
+        self.rubberBand = QgsRubberBand(self.canvas())
         self.rubberBand.setColor(Qt.red)
         self.rubberBand.setFillColor(QColor(255, 0, 0, 127))  # semi-transparent red
         self.rubberBand.setWidth(1)
@@ -29,46 +26,28 @@ class CoordinateCaptureMapTool(QgsMapTool):
         self.press_point = None
         self.pressed = False
 
+        self.activated.connect(self.dialog.show_and_activate)
+        self.reactivated.connect(self.dialog.show_and_activate)
+        self.deactivated.connect(self.rubberBand.reset)
+
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.pressed = True
-            self.press_point = QgsPoint(e.mapPoint())
-            rect = QgsRectangle(
-                self.mapCanvas.getCoordinateTransform().toMapCoordinates(
-                    e.x() - 1, e.y() - 1
-                ),
-                self.mapCanvas.getCoordinateTransform().toMapCoordinates(
-                    e.x() + 1, e.y() + 1
-                ),
-            )
-            geom = QgsGeometry().fromRect(rect)
-            self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
-            self.rubberBand.addGeometry(geom)
+            self.press_point = e.mapPoint()
+            self.rubberBand.setToGeometry(QgsGeometry.fromPointXY(e.mapPoint()))
             self.rubberBand.show()
 
     def canvasReleaseEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            self.pressed = False
-            release_point = QgsPoint(
-                self.mapCanvas.getCoordinateTransform().toMapCoordinates(e.x(), e.y())
-            )
-            self.mouseReleased.emit(self.press_point, release_point)
+        if e.button() == Qt.LeftButton and self.pressed:
+            point1 = self.toLayerCoordinates(self.layer, self.press_point)
+            point2 = self.toLayerCoordinates(self.layer, e.mapPoint())
+            self.dialog.on_mouse_released(point1, point2)
         elif e.button() == Qt.RightButton:
-            self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
+            self.rubberBand.reset()
+            self.dialog.treeResults.clear()
+        self.pressed = False
 
     def canvasMoveEvent(self, e):
         if self.pressed:
-            move_point = QgsPointXY(
-                self.mapCanvas.getCoordinateTransform().toMapCoordinates(e.x(), e.y())
-            )
-
-            rect = QgsRectangle(QgsPointXY(self.press_point), move_point)
-            geom = QgsGeometry().fromRect(rect)
-            self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
-            self.rubberBand.addGeometry(geom)
+            self.rubberBand.setToGeometry(QgsGeometry.fromRect(QgsRectangle(self.press_point, e.mapPoint())))
             self.rubberBand.show()
-
-    def deactivate(self):
-        self.rubberBand.reset(QgsWkbTypes.LineGeometry)
-        super(CoordinateCaptureMapTool, self).deactivate()
-        self.deactivated.emit()

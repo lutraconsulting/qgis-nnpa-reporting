@@ -1,7 +1,8 @@
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QDialog
+from qgis.core import QgsSettings, QgsVectorLayer
 
-from .reporting_map_tool import CoordinateCaptureMapTool
-from .output_dialog import OutputDialog
+from .settings_dialog import SettingsDialog
+from .reporting_map_tool import ReportingMapTool
 
 
 class ReportingTool:
@@ -9,24 +10,39 @@ class ReportingTool:
 
     def __init__(self, iface):
         self.iface = iface
-        self.al = iface.activeLayer()
-        self.mapTool = CoordinateCaptureMapTool(self.iface.mapCanvas())
-        self.dialog = OutputDialog(self.al, self.mapTool)
-        self.mapTool.deactivated.connect(self.dialog.hide)
-        self.dialog.show_dialog.connect(self.on_show_dialog)
+        self.layer = None
+        self.mapTool = None
+        s = QgsSettings()
+        layerUri = s.value('plugins/nnpa_reporting_plugin/layer_uri', None)
+        if layerUri:
+            self.setLayer(layerUri)
+
+    def setLayer(self, uri):
+        self.layer = QgsVectorLayer(uri)
+        self.mapTool = ReportingMapTool(self.iface.mapCanvas(), self.layer)
 
     def initGui(self):
-        self.action = QAction("Reporting tool", self.iface.mainWindow())
-        self.action.triggered.connect(self.run)
-        self.iface.addToolBarIcon(self.action)
+        action = QAction("Reporting tool", self.iface.mainWindow())
+        action.triggered.connect(self.run)
+        settingsAction = QAction("Settings", self.iface.mainWindow())
+        settingsAction.triggered.connect(self.openSettings)
+        self.toolBar = self.iface.addToolBar('NNPA Reporting Tool')
+        self.toolBar.setToolTip("NNPA Reporting Toolbar")
+        self.toolBar.setObjectName("NNPAReportingToolbar")
+        self.toolBar.addAction(action)
+        self.toolBar.addAction(settingsAction)
 
     def unload(self):
-        self.iface.removeToolBarIcon(self.action)
-        del self.action
+        self.toolBar.deleteLater()
+        del self.toolBar
 
     def run(self):
+        if not self.layer or not self.layer.isValid():
+            self.openSettings()
+            return
         self.iface.mapCanvas().setMapTool(self.mapTool)
-        self.dialog.show()
 
-    def on_show_dialog(self):
-        self.dialog.show()
+    def openSettings(self):
+        dlg = SettingsDialog(self.iface)
+        if dlg.exec() == QDialog.Accepted:
+            self.setLayer(dlg.layer_uri)
