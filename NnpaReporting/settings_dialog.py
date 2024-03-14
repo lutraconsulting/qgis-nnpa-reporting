@@ -22,6 +22,7 @@ class SettingsDialog(QDialog):
 
         s = QgsSettings()
         self.layer_uri = s.value('plugins/nnpa_reporting_plugin/layer_uri', None)
+        self.layer_provider = s.value('plugins/nnpa_reporting_plugin/layer_provider', None)
         self.ui.uriLineEdit.setText(self.layer_uri)
         self.sensitive_species = s.value('plugins/nnpa_reporting_plugin/sensitive_species', [])
         self.ui.sensitiveSpeciesTextEdit.setPlainText('\n'.join(self.sensitive_species))
@@ -35,6 +36,7 @@ class SettingsDialog(QDialog):
                     QMessageBox.critical(self, "Error", f"Layer is missing required field: {required_field}")
                     return
             self.layer_uri = layer.dataProvider().dataSourceUri(True)
+            self.layer_provider = layer.dataProvider().name()
             self.ui.uriLineEdit.setText(self.layer_uri)
 
     def accept(self):
@@ -44,6 +46,7 @@ class SettingsDialog(QDialog):
     def save_settings(self):
         s = QgsSettings()
         s.setValue('plugins/nnpa_reporting_plugin/layer_uri', self.layer_uri)
+        s.setValue('plugins/nnpa_reporting_plugin/layer_provider', self.layer_provider)
         s.setValue('plugins/nnpa_reporting_plugin/sensitive_species', self.sensitive_species)
 
     def load_csv(self):

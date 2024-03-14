@@ -14,11 +14,12 @@ class ReportingTool:
         self.mapTool = None
         s = QgsSettings()
         layerUri = s.value('plugins/nnpa_reporting_plugin/layer_uri', None)
+        layerProvider = s.value('plugins/nnpa_reporting_plugin/layer_provider', None)
         if layerUri:
-            self.setLayer(layerUri)
+            self.setLayer(layerUri, layerProvider)
 
-    def setLayer(self, uri):
-        self.layer = QgsVectorLayer(uri)
+    def setLayer(self, uri, provider):
+        self.layer = QgsVectorLayer(uri, "nnpa_reporting_layer", provider)
         self.mapTool = ReportingMapTool(self.iface.mapCanvas(), self.layer)
 
     def initGui(self):
@@ -45,4 +46,4 @@ class ReportingTool:
     def openSettings(self):
         dlg = SettingsDialog(self.iface)
         if dlg.exec() == QDialog.Accepted:
-            self.setLayer(dlg.layer_uri)
+            self.setLayer(dlg.layer_uri, dlg.layer_provider)
