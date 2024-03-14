@@ -1,8 +1,10 @@
 from os import path
 
 from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QTreeWidgetItem
-from qgis.core import QgsRectangle, QgsFeatureRequest, QgsGeometry, QgsSettings
+from qgis.core import QgsRectangle, QgsFeatureRequest, QgsGeometry, QgsSettings, QgsVectorLayer, Qgis, QgsField, \
+    QgsFeature, QgsProject
 
 ui_file = path.join(path.dirname(__file__), "output_dialog.ui")
 
@@ -13,7 +15,9 @@ class OutputDialog(QDialog):
     def __init__(self, layer):
         super().__init__()
         self.ui = uic.loadUi(ui_file, self)
+        self.ui.loadAsLayerButton.clicked.connect(self.load_results_as_layer)
         self.layer = layer
+        self.geom = None
         self.treeResults.setHeaderLabels(
             [
                 "Common Name",
@@ -57,11 +61,11 @@ class OutputDialog(QDialog):
         precision_filter = f'"Precision" in ({wanted_string_prec})'
 
         # buffer
-        buffer_value = self.qgsDoubleSpinBoxBuffer.value()
+        self.buffer_value = self.qgsDoubleSpinBoxBuffer.value()
         if point1 == point2:
-            geom = QgsGeometry.fromPointXY(point1)
+            self.geom = QgsGeometry.fromPointXY(point1)
         else:
-            geom = QgsGeometry.fromRect(QgsRectangle(point1, point2))
+            self.geom = QgsGeometry.fromRect(QgsRectangle(point1, point2))
 
         # exclusion filter
         excluded_names = (
@@ -77,7 +81,7 @@ class OutputDialog(QDialog):
         fields = ["Common_Nam", "Sample_Dat", "Precision"]
 
         return (QgsFeatureRequest()
-                .setDistanceWithin(geom, buffer_value)
+                .setDistanceWithin(self.geom, self.buffer_value)
                 .setFilterExpression(expression_filter)
                 .setFlags(QgsFeatureRequest.NoGeometry)
                 .setFlags(QgsFeatureRequest.ExactIntersect)
@@ -152,6 +156,45 @@ class OutputDialog(QDialog):
     def show_and_activate(self):
         self.show()
         self.activateWindow()
+
+    def load_results_as_layer(self):
+        root_item = self.treeResults.invisibleRootItem()
+        if root_item.childCount() == 0:
+            return
+
+        if self.buffer_value:
+            geom = self.geom.buffer(self.buffer_value, 20)
+        else:
+            geom = self.geom
+
+        if geom.type() == Qgis.GeometryType.Point:
+            vl = QgsVectorLayer("Point", "query_results", "memory")
+        else:
+            vl = QgsVectorLayer("Polygon", "query_results", "memory")
+
+        vl.setCrs(self.layer.crs())
+        dp = vl.dataProvider()
+        dp.addAttributes([QgsField("Common Name", QVariant.String),
+                          QgsField("Count", QVariant.Int),
+                          QgsField("Observation Date", QVariant.String),
+                          QgsField("Precision Min", QVariant.String),
+                          QgsField("Precision Max", QVariant.String),
+                          ])
+        vl.updateFields()
+
+        root_item = self.treeResults.invisibleRootItem()
+        for i in range(root_item.childCount()):
+            item = root_item.child(i)
+            f = QgsFeature(dp.fields())
+            f.setAttributes([item.text(0),
+                             item.text(1),
+                             item.text(2),
+                             item.text(3),
+                             item.text(4)])
+            f.setGeometry(geom)
+            dp.addFeature(f)
+
+        QgsProject.instance().addMapLayer(vl)
 
 
 class TreeWidgetItem(QTreeWidgetItem):
