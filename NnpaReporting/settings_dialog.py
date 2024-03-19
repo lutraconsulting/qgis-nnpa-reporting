@@ -3,8 +3,7 @@ from os import path
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QFileDialog, QMessageBox
-from qgis.core import QgsSettings, Qgis
-
+from qgis.core import QgsSettings, Qgis, QgsMapLayerProxyModel
 
 ui_file = path.join(path.dirname(__file__), "settings_dialog.ui")
 
@@ -16,7 +15,10 @@ class SettingsDialog(QDialog):
 
         self.iface = iface
 
-        self.ui.layerComboBox.setFilters(Qgis.LayerFilter.PolygonLayer)
+        try:
+            self.ui.layerComboBox.setFilters(Qgis.LayerFilter.PolygonLayer)
+        except AttributeError:
+            self.ui.layerComboBox.setFilters(QgsMapLayerProxyModel.Filter.PolygonLayer)
         self.ui.setFromLayerButton.clicked.connect(self.on_pick_layer)
         self.ui.loadCsvButton.clicked.connect(self.load_csv)
 
