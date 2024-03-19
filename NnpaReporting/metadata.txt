@@ -4,6 +4,11 @@ description=NNPA Reporting tool
 about=This plugin is used by NNPA to generate species reports based on specified filters
 version=1.0
 qgisMinimumVersion=3.0
+qgisMaximumVersion=3.99
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
+tracker=https://github.com/lutraconsulting/qgis-nnpa-reporting/issues
 repository=https://github.com/lutraconsulting/qgis-nnpa-reporting
+
+# Tags are comma separated with spaces allowed
+tags=postgis, reporting, environment, nnpa
