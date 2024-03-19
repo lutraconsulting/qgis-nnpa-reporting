@@ -2,7 +2,7 @@
 name=NNPA Reporting
 description=NNPA Reporting tool
 about=This plugin is used by NNPA to generate species reports based on specified filters
-version=1.0
+version=1.1
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 author=Lutra Consulting
