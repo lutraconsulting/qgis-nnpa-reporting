@@ -30,6 +30,9 @@ class OutputDialog(QDialog):
         self.treeResults.header().resizeSections(QHeaderView.ResizeToContents)
         s = QgsSettings()
         self.excluded_names = s.value('plugins/nnpa_reporting_plugin/sensitive_species', [])
+        self.name_field_name = s.value('plugins/nnpa_reporting_plugin/name_field_name', "Common_Nam")
+        self.date_field_name = s.value('plugins/nnpa_reporting_plugin/date_field_name', "Sample_Dat")
+        self.precision_field_name = s.value('plugins/nnpa_reporting_plugin/precision_field_name', "Precision")
         self.precision_values = []
         self.populate_ranges()
 
@@ -74,11 +77,11 @@ class OutputDialog(QDialog):
         expression_filter = precision_filter
         if excluded_names:
             excluded_names_str = f"""'{"','".join(excluded_names)}'"""
-            excluded_names_filter = f'"Common_Nam" not in ({excluded_names_str})'
+            excluded_names_filter = f'"{self.name_field_name}" not in ({excluded_names_str})'
             expression_filter += f" and {excluded_names_filter}"
 
         # desired fields
-        fields = ["Common_Nam", "Sample_Dat", "Precision"]
+        fields = [self.name_field_name, self.date_field_name, self.precision_field_name]
 
         return (QgsFeatureRequest()
                 .setDistanceWithin(self.geom, self.buffer_value)
@@ -92,26 +95,26 @@ class OutputDialog(QDialog):
         """Format the features that are passing through the filter to the desired format"""
         output_dict = {}
         for sel_feat in self.layer.getFeatures(req):
-            if sel_feat["Common_Nam"] not in output_dict:
+            if sel_feat[self.name_field_name] not in output_dict:
                 # the first occurrence
-                output_dict[sel_feat["Common_Nam"]] = {
-                    "date": [sel_feat["Sample_Dat"]],
-                    "precision_min": sel_feat["precision"],
-                    "precision_max": sel_feat["precision"],
+                output_dict[sel_feat[self.name_field_name]] = {
+                    "date": [sel_feat[self.date_field_name]],
+                    "precision_min": sel_feat[self.precision_field_name],
+                    "precision_max": sel_feat[self.precision_field_name],
                     "count": 1,
                 }
             else:
                 # the feature is already in the dict -> increase count, update date and precision fields
-                dict_feature = output_dict[sel_feat["Common_Nam"]]
+                dict_feature = output_dict[sel_feat[self.name_field_name]]
 
                 dict_feature["count"] += 1
-                dict_feature["date"].append(sel_feat["Sample_Dat"])
+                dict_feature["date"].append(sel_feat[self.date_field_name])
 
-                if self.precision_values.index(sel_feat["precision"]) > self.precision_values.index(dict_feature["precision_max"]):
-                    dict_feature["precision_max"] = sel_feat["precision"]
+                if self.precision_values.index(sel_feat[self.precision_field_name]) > self.precision_values.index(dict_feature["precision_max"]):
+                    dict_feature["precision_max"] = sel_feat[self.precision_field_name]
 
-                if self.precision_values.index(sel_feat["precision"]) < self.precision_values.index(dict_feature["precision_min"]):
-                    dict_feature["precision_min"] = sel_feat["precision"]
+                if self.precision_values.index(sel_feat[self.precision_field_name]) < self.precision_values.index(dict_feature["precision_min"]):
+                    dict_feature["precision_min"] = sel_feat[self.precision_field_name]
 
         return output_dict
 
@@ -141,7 +144,7 @@ class OutputDialog(QDialog):
         """Return a sorted list of unique precision values from the layer
         ['100m', '1km', '10km', etc.]"""
         fields = self.layer.fields()
-        precision_idx = fields.indexFromName("Precision")
+        precision_idx = fields.indexFromName(self.precision_field_name)
         unique_list = self.layer.uniqueValues(precision_idx)
 
         precision_dict = {}

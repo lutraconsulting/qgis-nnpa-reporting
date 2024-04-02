@@ -30,6 +30,9 @@ class ReportingMapTool(QgsMapTool):
         self.reactivated.connect(self.dialog.show_and_activate)
         self.deactivated.connect(self.rubberBand.reset)
 
+    def __del__(self):
+        self.dialog.deleteLater()
+
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.pressed = True

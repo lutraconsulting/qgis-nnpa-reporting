@@ -5,6 +5,8 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QFileDialog, QMessageBox
 from qgis.core import QgsSettings, Qgis, QgsMapLayerProxyModel
 
+from .fields_dialog import FieldsDialog
+
 ui_file = path.join(path.dirname(__file__), "settings_dialog.ui")
 
 
@@ -31,12 +33,11 @@ class SettingsDialog(QDialog):
 
     def on_pick_layer(self):
         layer = self.ui.layerComboBox.currentLayer()
-        if layer and layer.isValid():
-            fields = layer.fields()
-            for required_field in ["Common_Nam", "Sample_Dat", "Precision"]:
-                if fields.indexOf(required_field) == -1:
-                    QMessageBox.critical(self, "Error", f"Layer is missing required field: {required_field}")
-                    return
+        if not layer or not layer.isValid():
+            return
+
+        dlg = FieldsDialog(self, layer.fields())
+        if dlg.exec() == QDialog.Accepted:
             self.layer_uri = layer.dataProvider().dataSourceUri(True)
             self.layer_provider = layer.dataProvider().name()
             self.ui.uriLineEdit.setText(self.layer_uri)

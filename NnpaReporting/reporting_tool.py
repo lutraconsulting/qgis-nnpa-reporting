@@ -15,7 +15,7 @@ class ReportingTool:
         s = QgsSettings()
         layerUri = s.value('plugins/nnpa_reporting_plugin/layer_uri', None)
         layerProvider = s.value('plugins/nnpa_reporting_plugin/layer_provider', None)
-        if layerUri:
+        if layerUri and layerProvider:
             self.setLayer(layerUri, layerProvider)
 
     def setLayer(self, uri, provider):
@@ -34,11 +34,20 @@ class ReportingTool:
         self.toolBar.addAction(settingsAction)
 
     def unload(self):
+        self.mapTool.deleteLater()
         self.toolBar.deleteLater()
         del self.toolBar
 
     def run(self):
-        if not self.layer or not self.layer.isValid():
+        s = QgsSettings()
+        name_field_name = s.value('plugins/nnpa_reporting_plugin/name_field_name', "Common_nam")
+        date_field_name = s.value('plugins/nnpa_reporting_plugin/date_field_name', "Sample_dat")
+        precision_field_name = s.value('plugins/nnpa_reporting_plugin/precision_field_name', "Precision")
+        if not self.layer or \
+                not self.layer.isValid() or \
+                self.layer.fields().indexOf(name_field_name) < 0 or \
+                self.layer.fields().indexOf(date_field_name) < 0 or \
+                self.layer.fields().indexOf(precision_field_name) < 0:
             self.openSettings()
             return
         self.iface.mapCanvas().setMapTool(self.mapTool)
