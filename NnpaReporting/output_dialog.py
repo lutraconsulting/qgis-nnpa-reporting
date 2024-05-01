@@ -16,6 +16,9 @@ class OutputDialog(QDialog):
         super().__init__()
         self.ui = uic.loadUi(ui_file, self)
         self.ui.loadAsLayerButton.clicked.connect(self.load_results_as_layer)
+        self.ui.cbMode.addItem("Point", 0)
+        self.ui.cbMode.addItem("Polygon", 1)
+        self.ui.cbMode.addItem("Layer Polygon", 2)
         self.layer = layer
         self.geom = None
         self.treeResults.setHeaderLabels(
@@ -47,12 +50,13 @@ class OutputDialog(QDialog):
         self.cbPrecisionMin.setCurrentIndex(0)
         self.cbPrecisionMax.setCurrentIndex(self.cbPrecisionMax.count() - 1)
 
-    def on_mouse_released(self, point1, point2):
-        req = self.build_request(point1, point2)
+    def on_mouse_released(self, geom):
+        self.geom = geom
+        req = self.build_request()
         output_dict = self.perform_request(req)
         self.populate_results(output_dict)
 
-    def build_request(self, point1, point2):
+    def build_request(self):
         # precision filter
         prec_min = min(self.cbPrecisionMin.currentIndex(), self.cbPrecisionMax.currentIndex())
         prec_max = max(self.cbPrecisionMin.currentIndex(), self.cbPrecisionMax.currentIndex())
@@ -72,10 +76,6 @@ class OutputDialog(QDialog):
 
         # buffer
         self.buffer_value = self.qgsDoubleSpinBoxBuffer.value()
-        if point1 == point2:
-            self.geom = QgsGeometry.fromPointXY(point1)
-        else:
-            self.geom = QgsGeometry.fromRect(QgsRectangle(point1, point2))
 
         # exclusion filter
         excluded_names = (

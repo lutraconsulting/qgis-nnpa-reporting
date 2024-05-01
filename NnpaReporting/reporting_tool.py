@@ -20,7 +20,7 @@ class ReportingTool:
 
     def setLayer(self, uri, provider):
         self.layer = QgsVectorLayer(uri, "nnpa_reporting_layer", provider)
-        self.mapTool = ReportingMapTool(self.iface.mapCanvas(), self.layer)
+        self.mapTool = ReportingMapTool(self.iface, self.layer)
 
     def initGui(self):
         action = QAction("Reporting tool", self.iface.mainWindow())
