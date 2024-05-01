@@ -34,11 +34,12 @@ class OutputDialog(QDialog):
         self.date_field_name = s.value('plugins/nnpa_reporting_plugin/date_field_name', "Sample_Dat")
         self.precision_field_name = s.value('plugins/nnpa_reporting_plugin/precision_field_name', "Precision")
         self.precision_values = []
+        self.precision_unknown_values = set()
         self.populate_ranges()
 
     def populate_ranges(self):
         """Populate the precision fields in the plugin dialog with the unique values"""
-        self.precision_values = self.get_unique_precision_values()
+        self.populate_precision_values()
         self.cbPrecisionMin.addItems(self.precision_values)
         self.cbPrecisionMax.addItems(self.precision_values)
 
@@ -61,7 +62,13 @@ class OutputDialog(QDialog):
             wanted_list_prec.append(self.precision_values[i])
 
         wanted_string_prec = f"""'{"','".join(wanted_list_prec)}'"""
-        precision_filter = f'"Precision" in ({wanted_string_prec})'
+        precision_filter = f'"{self.precision_field_name}" in ({wanted_string_prec})'
+
+        if self.cbIncludeNullPrecision.isChecked():
+            unwanted_string_prec = f"""'{"','".join(self.precision_unknown_values)}'"""
+            precision_filter = f"""({precision_filter} or """ \
+                               f""""{self.precision_field_name}" is null or """ \
+                               f""""{self.precision_field_name}" in ({unwanted_string_prec}))"""
 
         # buffer
         self.buffer_value = self.qgsDoubleSpinBoxBuffer.value()
@@ -110,10 +117,18 @@ class OutputDialog(QDialog):
                 dict_feature["count"] += 1
                 dict_feature["date"].append(sel_feat[self.date_field_name])
 
-                if self.precision_values.index(sel_feat[self.precision_field_name]) > self.precision_values.index(dict_feature["precision_max"]):
+                if (
+                        not dict_feature["precision_max"]
+                        or self.precision_values.index(sel_feat[self.precision_field_name]) > self.precision_values.index(dict_feature["precision_max"])
+                        and sel_feat[self.precision_field_name]
+                ):
                     dict_feature["precision_max"] = sel_feat[self.precision_field_name]
 
-                if self.precision_values.index(sel_feat[self.precision_field_name]) < self.precision_values.index(dict_feature["precision_min"]):
+                if (
+                        not dict_feature["precision_min"]
+                        or self.precision_values.index(sel_feat[self.precision_field_name]) < self.precision_values.index(dict_feature["precision_min"])
+                        and sel_feat[self.precision_field_name]
+                ):
                     dict_feature["precision_min"] = sel_feat[self.precision_field_name]
 
         return output_dict
@@ -129,8 +144,8 @@ class OutputDialog(QDialog):
                     key,
                     str(value["count"]),
                     ", ".join(set(value["date"])),
-                    value["precision_min"],
-                    value["precision_max"],
+                    value["precision_min"] or 'NULL',
+                    value["precision_max"] or 'NULL',
                 ]
             )
             root_item.addChild(item)
@@ -140,8 +155,8 @@ class OutputDialog(QDialog):
         self.lbTotal.setText(f"Total: {total_count}")
         self.show_and_activate()
 
-    def get_unique_precision_values(self):
-        """Return a sorted list of unique precision values from the layer
+    def populate_precision_values(self):
+        """Populates a sorted list of unique precision values from the layer
         ['100m', '1km', '10km', etc.]"""
         fields = self.layer.fields()
         precision_idx = fields.indexFromName(self.precision_field_name)
@@ -149,12 +164,18 @@ class OutputDialog(QDialog):
 
         precision_dict = {}
         for value in unique_list:
-            unit = value.lstrip("0123456789")
-            number = value.rstrip(unit)
-            meters = int(number) * 1000 if unit == "km" else int(number)
+            try:
+                meters = value.upper().replace('KM', '000').replace('M', '').replace(' ', '')
+                meters = int(meters)
+            except (ValueError, TypeError):  # handle not identified values
+                self.precision_unknown_values.add(value)
+                continue
+            except AttributeError:  # ignore null values
+                continue
+
             precision_dict[meters] = value
 
-        return [v[1] for v in sorted(precision_dict.items())]
+        self.precision_values = [v[1] for v in sorted(precision_dict.items())]
 
     def show_and_activate(self):
         self.show()

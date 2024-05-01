@@ -75,6 +75,13 @@
       <widget class="QComboBox" name="cbPrecisionMax"/>
      </item>
      <item>
+      <widget class="QCheckBox" name="cbIncludeNullPrecision">
+       <property name="text">
+        <string>Include NULL and invalid precision values</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
