@@ -33,7 +33,10 @@ class ReportingMapTool(QgsMapTool):
         self.digitizing_polygon = False
 
         self.activated.connect(self.dialog.show_and_activate)
-        self.reactivated.connect(self.dialog.show_and_activate)
+        try:
+            self.reactivated.connect(self.dialog.show_and_activate)
+        except AttributeError:
+            pass  # QgsMapTool.reactivated is not available for QGIS < 3.32
         self.deactivated.connect(self.rubberBand.reset)
 
     def __del__(self):
