@@ -117,19 +117,23 @@ class OutputDialog(QDialog):
                 dict_feature["count"] += 1
                 dict_feature["date"].append(sel_feat[self.date_field_name])
 
-                if (
-                        not dict_feature["precision_max"]
-                        or self.precision_values.index(sel_feat[self.precision_field_name]) > self.precision_values.index(dict_feature["precision_max"])
-                        and sel_feat[self.precision_field_name]
-                ):
-                    dict_feature["precision_max"] = sel_feat[self.precision_field_name]
+                try:
+                    if (
+                            not dict_feature["precision_max"]
+                            or self.precision_values.index(sel_feat[self.precision_field_name]) > self.precision_values.index(dict_feature["precision_max"])
+                    ):
+                        dict_feature["precision_max"] = sel_feat[self.precision_field_name]
+                except ValueError:
+                    pass
 
-                if (
-                        not dict_feature["precision_min"]
-                        or self.precision_values.index(sel_feat[self.precision_field_name]) < self.precision_values.index(dict_feature["precision_min"])
-                        and sel_feat[self.precision_field_name]
-                ):
-                    dict_feature["precision_min"] = sel_feat[self.precision_field_name]
+                try:
+                    if (
+                            not dict_feature["precision_min"]
+                            or self.precision_values.index(sel_feat[self.precision_field_name]) < self.precision_values.index(dict_feature["precision_min"])
+                    ):
+                        dict_feature["precision_min"] = sel_feat[self.precision_field_name]
+                except ValueError:
+                    pass
 
         return output_dict
 
