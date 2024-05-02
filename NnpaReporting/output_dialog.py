@@ -4,7 +4,7 @@ from enum import Enum
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QTreeWidgetItem
-from qgis.core import QgsFeatureRequest, QgsSettings, QgsVectorLayer, QgsField, QgsFeature, QgsProject, QgsWkbTypes
+from qgis.core import QgsFeatureRequest, QgsSettings, QgsVectorLayer, QgsField, QgsFeature, QgsProject, Qgis
 
 ui_file = path.join(path.dirname(__file__), "output_dialog.ui")
 
@@ -201,7 +201,7 @@ class OutputDialog(QDialog):
         else:
             geom = self.geom
 
-        if geom.type() == QgsWkbTypes.GeometryType.Point:
+        if geom.type() == Qgis.GeometryType.Point:
             vl = QgsVectorLayer("Point", "query_results", "memory")
         else:
             vl = QgsVectorLayer("Polygon", "query_results", "memory")

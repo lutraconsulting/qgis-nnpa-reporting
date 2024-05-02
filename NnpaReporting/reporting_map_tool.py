@@ -6,8 +6,7 @@ from qgis.core import (
     QgsRectangle,
     QgsGeometry,
     QgsApplication,
-    QgsCsException,
-    QgsWkbTypes
+    QgsCsException
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 
@@ -33,10 +32,7 @@ class ReportingMapTool(QgsMapTool):
         self.digitizing_polygon = False
 
         self.activated.connect(self.dialog.show_and_activate)
-        try:
-            self.reactivated.connect(self.dialog.show_and_activate)
-        except AttributeError:
-            pass  # QgsMapTool.reactivated is not available for QGIS < 3.32
+        self.reactivated.connect(self.dialog.show_and_activate)
         self.deactivated.connect(self.rubberBand.reset)
 
     def __del__(self):
@@ -51,7 +47,7 @@ class ReportingMapTool(QgsMapTool):
                 self.rubberBand.show()
             elif self.dialog.cbMode.currentData() == IdentifyMode.POLYGON:
                 if not self.digitizing_polygon:
-                    self.rubberBand.reset(QgsWkbTypes.GeometryType.Polygon)
+                    self.rubberBand.reset(Qgis.GeometryType.Polygon)
                 self.digitizing_polygon = True
                 self.rubberBand.show()
 
@@ -77,7 +73,7 @@ class ReportingMapTool(QgsMapTool):
             identifyMenu = QgsIdentifyMenu(self.canvas())
             identifyMenu.setAllowMultipleReturn(False)
             identifyMenu.setExecWithSingleResult(True)
-            results = QgsIdentifyMenu.findFeaturesOnCanvas(e, self.canvas(), [QgsWkbTypes.GeometryType.Polygon])
+            results = QgsIdentifyMenu.findFeaturesOnCanvas(e, self.canvas(), [Qgis.GeometryType.Polygon])
             # remove results from our own layer
             results = [r for r in results if r.mLayer.dataProvider().dataSourceUri() != self.layer.dataProvider().dataSourceUri()]
             globalPos = self.canvas().mapToGlobal(QPoint(e.pos().x() + 5, e.pos().y() + 5))
