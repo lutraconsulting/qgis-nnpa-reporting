@@ -6,13 +6,12 @@ from qgis.core import (
     QgsRectangle,
     QgsGeometry,
     QgsApplication,
-    QgsCoordinateTransform,
     QgsCsException,
-    QgsProject
+    QgsWkbTypes
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 
-from .output_dialog import OutputDialog
+from .output_dialog import OutputDialog, IdentifyMode
 
 
 class ReportingMapTool(QgsMapTool):
@@ -31,6 +30,7 @@ class ReportingMapTool(QgsMapTool):
         self.setCursor(QgsApplication.getThemeCursor(QgsApplication.Cursor.CrossHair))
         self.press_point = None
         self.pressed = False
+        self.digitizing_polygon = False
 
         self.activated.connect(self.dialog.show_and_activate)
         self.reactivated.connect(self.dialog.show_and_activate)
@@ -41,52 +41,77 @@ class ReportingMapTool(QgsMapTool):
 
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            self.pressed = True
-            self.press_point = e.mapPoint()
-            self.rubberBand.setToGeometry(QgsGeometry.fromPointXY(e.mapPoint()))
-            self.rubberBand.show()
+            if self.dialog.cbMode.currentData() == IdentifyMode.POINT:
+                self.pressed = True
+                self.press_point = e.mapPoint()
+                self.rubberBand.setToGeometry(QgsGeometry.fromPointXY(e.mapPoint()))
+                self.rubberBand.show()
+            elif self.dialog.cbMode.currentData() == IdentifyMode.POLYGON:
+                if not self.digitizing_polygon:
+                    self.rubberBand.reset(QgsWkbTypes.GeometryType.Polygon)
+                self.digitizing_polygon = True
+                self.rubberBand.show()
 
     def canvasReleaseEvent(self, e):
         if e.button() == Qt.RightButton:
-            self.pressed = False
-            self.rubberBand.reset()
-            self.dialog.treeResults.clear()
+            if self.dialog.cbMode.currentData() == IdentifyMode.POLYGON and self.digitizing_polygon:
+                self.rubberBand.removeLastPoint()
+                self.finishDigitizing()
+            else:
+                self.resetDigitizing()
 
         if e.button() != Qt.LeftButton:
             return
 
-        if self.dialog.cbMode.currentData() == 0:
+        if self.dialog.cbMode.currentData() == IdentifyMode.POINT:
             if self.pressed:
-                point1 = self.toLayerCoordinates(self.layer, self.press_point)
-                point2 = self.toLayerCoordinates(self.layer, e.mapPoint())
-                if point1 == point2:
-                    geom = QgsGeometry.fromPointXY(point1)
-                else:
-                    geom = QgsGeometry.fromRect(QgsRectangle(point1, point2))
-                self.dialog.on_mouse_released(geom)
+                self.finishDigitizing()
 
-        elif self.dialog.cbMode.currentData() == 1:
-            pass
-        elif self.dialog.cbMode.currentData() == 2:
+        elif self.dialog.cbMode.currentData() == IdentifyMode.POLYGON:
+            self.rubberBand.addPoint(e.mapPoint())
+        elif self.dialog.cbMode.currentData() == IdentifyMode.LAYER:
+            self.rubberBand.reset()
             identifyMenu = QgsIdentifyMenu(self.canvas())
             identifyMenu.setAllowMultipleReturn(False)
             identifyMenu.setExecWithSingleResult(True)
-            results = QgsIdentifyMenu.findFeaturesOnCanvas(e, self.canvas(), [Qgis.GeometryType.Polygon])
+            results = QgsIdentifyMenu.findFeaturesOnCanvas(e, self.canvas(), [QgsWkbTypes.GeometryType.Polygon])
+            # remove results from our own layer
+            results = [r for r in results if r.mLayer.dataProvider().dataSourceUri() != self.layer.dataProvider().dataSourceUri()]
             globalPos = self.canvas().mapToGlobal(QPoint(e.pos().x() + 5, e.pos().y() + 5))
             selectedFeatures = identifyMenu.exec(results, globalPos)
             if selectedFeatures and selectedFeatures[0].mFeature.hasGeometry():
-                transform = QgsCoordinateTransform(selectedFeatures[0].mLayer.crs(), self.layer.crs(), QgsProject.instance())
                 geom = selectedFeatures[0].mFeature.geometry()
+                transform = self.canvas().mapSettings().layerTransform(selectedFeatures[0].mLayer)
                 try:
                     geom.transform(transform)
                 except QgsCsException:
                     pass
 
-                self.dialog.on_mouse_released(geom)
-
-        self.pressed = False
+                self.rubberBand.setToGeometry(geom)
+                self.finishDigitizing()
 
     def canvasMoveEvent(self, e):
-        if self.pressed:
+        if self.dialog.cbMode.currentData() == IdentifyMode.POINT and self.pressed:
             self.rubberBand.setToGeometry(QgsGeometry.fromRect(QgsRectangle(self.press_point, e.mapPoint())))
             self.rubberBand.show()
+        elif self.dialog.cbMode.currentData() == IdentifyMode.POLYGON and self.digitizing_polygon:
+            self.rubberBand.movePoint(e.mapPoint())
+            self.rubberBand.show()
+
+    def finishDigitizing(self):
+        transform = self.canvas().mapSettings().layerTransform(self.layer)
+        geom = self.rubberBand.asGeometry()
+        try:
+            geom.transform(transform, Qgis.TransformDirection.ReverseTransform)
+        except QgsCsException:
+            pass
+
+        self.dialog.search_using_geometry(geom)
+        self.pressed = False
+        self.digitizing_polygon = False
+
+    def resetDigitizing(self):
+        self.pressed = False
+        self.digitizing_polygon = False
+        self.rubberBand.reset()
+        self.dialog.clearResults()

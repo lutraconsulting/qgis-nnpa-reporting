@@ -1,12 +1,18 @@
 from os import path
+from enum import Enum
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QTreeWidgetItem
-from qgis.core import QgsRectangle, QgsFeatureRequest, QgsGeometry, QgsSettings, QgsVectorLayer, Qgis, QgsField, \
-    QgsFeature, QgsProject
+from qgis.core import QgsFeatureRequest, QgsSettings, QgsVectorLayer, QgsField, QgsFeature, QgsProject, QgsWkbTypes
 
 ui_file = path.join(path.dirname(__file__), "output_dialog.ui")
+
+
+class IdentifyMode(Enum):
+    POINT = 1
+    POLYGON = 2
+    LAYER = 3
 
 
 class OutputDialog(QDialog):
@@ -16,9 +22,9 @@ class OutputDialog(QDialog):
         super().__init__()
         self.ui = uic.loadUi(ui_file, self)
         self.ui.loadAsLayerButton.clicked.connect(self.load_results_as_layer)
-        self.ui.cbMode.addItem("Point", 0)
-        self.ui.cbMode.addItem("Polygon", 1)
-        self.ui.cbMode.addItem("Layer Polygon", 2)
+        self.ui.cbMode.addItem("Point / Rectangle", IdentifyMode.POINT)
+        self.ui.cbMode.addItem("Polygon", IdentifyMode.POLYGON)
+        self.ui.cbMode.addItem("Existing layer polygon", IdentifyMode.LAYER)
         self.layer = layer
         self.geom = None
         self.treeResults.setHeaderLabels(
@@ -50,7 +56,7 @@ class OutputDialog(QDialog):
         self.cbPrecisionMin.setCurrentIndex(0)
         self.cbPrecisionMax.setCurrentIndex(self.cbPrecisionMax.count() - 1)
 
-    def on_mouse_released(self, geom):
+    def search_using_geometry(self, geom):
         self.geom = geom
         req = self.build_request()
         output_dict = self.perform_request(req)
@@ -195,7 +201,7 @@ class OutputDialog(QDialog):
         else:
             geom = self.geom
 
-        if geom.type() == Qgis.GeometryType.Point:
+        if geom.type() == QgsWkbTypes.GeometryType.Point:
             vl = QgsVectorLayer("Point", "query_results", "memory")
         else:
             vl = QgsVectorLayer("Polygon", "query_results", "memory")
@@ -223,6 +229,10 @@ class OutputDialog(QDialog):
             dp.addFeature(f)
 
         QgsProject.instance().addMapLayer(vl)
+
+    def clearResults(self):
+        self.treeResults.clear()
+        self.lbTotal.clear()
 
 
 class TreeWidgetItem(QTreeWidgetItem):
