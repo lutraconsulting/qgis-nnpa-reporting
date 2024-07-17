@@ -1,10 +1,10 @@
-from os import path
 from enum import Enum
+from os import path
 
+from qgis.core import Qgis, QgsFeature, QgsFeatureRequest, QgsField, QgsProject, QgsSettings, QgsVectorLayer
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QTreeWidgetItem
-from qgis.core import QgsFeatureRequest, QgsSettings, QgsVectorLayer, QgsField, QgsFeature, QgsProject, Qgis
 
 ui_file = path.join(path.dirname(__file__), "output_dialog.ui")
 
@@ -34,17 +34,39 @@ class OutputDialog(QDialog):
                 "Observation Date",
                 "Precision Min",
                 "Precision Max",
+                "Grid Reference",
+                "Latin Name",
+                "Sample Recorder",
+                "Survey Name",
             ]
         )
         self.treeResults.header().resizeSections(QHeaderView.ResizeToContents)
         s = QgsSettings()
-        self.excluded_names = s.value('plugins/nnpa_reporting_plugin/sensitive_species', [])
-        self.name_field_name = s.value('plugins/nnpa_reporting_plugin/name_field_name', "Common_Nam")
-        self.date_field_name = s.value('plugins/nnpa_reporting_plugin/date_field_name', "Sample_Dat")
-        self.precision_field_name = s.value('plugins/nnpa_reporting_plugin/precision_field_name', "Precision")
+        self.excluded_names = s.value("plugins/nnpa_reporting_plugin/sensitive_species", [])
+        self.name_field_name = s.value("plugins/nnpa_reporting_plugin/name_field_name", "Common_Nam")
+        self.date_field_name = s.value("plugins/nnpa_reporting_plugin/date_field_name", "Sample_Dat")
+        self.precision_field_name = s.value("plugins/nnpa_reporting_plugin/precision_field_name", "Precision")
+        self.grid_refer_field_name = s.value("plugins/nnpa_reporting_plugin/grid_refer_field_name", "grid refer")
+        self.latin_name_field_name = s.value("plugins/nnpa_reporting_plugin/latin_name_field_name", "latin name")
+        self.recorder_field_name = s.value("plugins/nnpa_reporting_plugin/recorder_field_name", "recorder")
+        self.survey_field_name = s.value("plugins/nnpa_reporting_plugin/survey_field_name", "survey nam")
+
         self.precision_values = []
         self.precision_unknown_values = set()
         self.populate_ranges()
+
+    @property
+    def desired_fields(self):
+        fields = [
+            self.name_field_name,
+            self.date_field_name,
+            self.precision_field_name,
+            self.grid_refer_field_name,
+            self.latin_name_field_name,
+            self.recorder_field_name,
+            self.survey_field_name,
+        ]
+        return fields
 
     def populate_ranges(self):
         """Populate the precision fields in the plugin dialog with the unique values"""
@@ -76,33 +98,31 @@ class OutputDialog(QDialog):
 
         if self.cbIncludeNullPrecision.isChecked():
             unwanted_string_prec = f"""'{"','".join(self.precision_unknown_values)}'"""
-            precision_filter = f"""({precision_filter} or """ \
-                               f""""{self.precision_field_name}" is null or """ \
-                               f""""{self.precision_field_name}" in ({unwanted_string_prec}))"""
+            precision_filter = (
+                f"""({precision_filter} or """
+                f""""{self.precision_field_name}" is null or """
+                f""""{self.precision_field_name}" in ({unwanted_string_prec}))"""
+            )
 
         # buffer
         self.buffer_value = self.qgsDoubleSpinBoxBuffer.value()
 
         # exclusion filter
-        excluded_names = (
-            self.excluded_names if self.cbExcludeSensitive.isChecked() else []
-        )
+        excluded_names = self.excluded_names if self.cbExcludeSensitive.isChecked() else []
         expression_filter = precision_filter
         if excluded_names:
             excluded_names_str = f"""'{"','".join(excluded_names)}'"""
             excluded_names_filter = f'"{self.name_field_name}" not in ({excluded_names_str})'
             expression_filter += f" and {excluded_names_filter}"
 
-        # desired fields
-        fields = [self.name_field_name, self.date_field_name, self.precision_field_name]
-
-        return (QgsFeatureRequest()
-                .setDistanceWithin(self.geom, self.buffer_value)
-                .setFilterExpression(expression_filter)
-                .setFlags(QgsFeatureRequest.NoGeometry)
-                .setFlags(QgsFeatureRequest.ExactIntersect)
-                .setSubsetOfAttributes(fields, self.layer.fields())
-                )
+        return (
+            QgsFeatureRequest()
+            .setDistanceWithin(self.geom, self.buffer_value)
+            .setFilterExpression(expression_filter)
+            .setFlags(QgsFeatureRequest.NoGeometry)
+            .setFlags(QgsFeatureRequest.ExactIntersect)
+            .setSubsetOfAttributes(self.desired_fields, self.layer.fields())
+        )
 
     def perform_request(self, req):
         """Format the features that are passing through the filter to the desired format"""
@@ -112,6 +132,10 @@ class OutputDialog(QDialog):
                 # the first occurrence
                 output_dict[sel_feat[self.name_field_name]] = {
                     "date": [sel_feat[self.date_field_name]],
+                    "grid_refer": [sel_feat[self.grid_refer_field_name]],
+                    "latin_name": sel_feat[self.latin_name_field_name],
+                    "recorder": [sel_feat[self.recorder_field_name]],
+                    "survey_name": [sel_feat[self.survey_field_name]],
                     "precision_min": sel_feat[self.precision_field_name],
                     "precision_max": sel_feat[self.precision_field_name],
                     "count": 1,
@@ -122,21 +146,22 @@ class OutputDialog(QDialog):
 
                 dict_feature["count"] += 1
                 dict_feature["date"].append(sel_feat[self.date_field_name])
+                dict_feature["grid_refer"].append(sel_feat[self.grid_refer_field_name])
+                dict_feature["recorder"].append(sel_feat[self.recorder_field_name])
+                dict_feature["survey_name"].append(sel_feat[self.survey_field_name])
 
                 try:
-                    if (
-                            not dict_feature["precision_max"]
-                            or self.precision_values.index(sel_feat[self.precision_field_name]) > self.precision_values.index(dict_feature["precision_max"])
-                    ):
+                    if not dict_feature["precision_max"] or self.precision_values.index(
+                        sel_feat[self.precision_field_name]
+                    ) > self.precision_values.index(dict_feature["precision_max"]):
                         dict_feature["precision_max"] = sel_feat[self.precision_field_name]
                 except ValueError:
                     pass
 
                 try:
-                    if (
-                            not dict_feature["precision_min"]
-                            or self.precision_values.index(sel_feat[self.precision_field_name]) < self.precision_values.index(dict_feature["precision_min"])
-                    ):
+                    if not dict_feature["precision_min"] or self.precision_values.index(
+                        sel_feat[self.precision_field_name]
+                    ) < self.precision_values.index(dict_feature["precision_min"]):
                         dict_feature["precision_min"] = sel_feat[self.precision_field_name]
                 except ValueError:
                     pass
@@ -154,8 +179,12 @@ class OutputDialog(QDialog):
                     key,
                     str(value["count"]),
                     ", ".join(set(value["date"])),
-                    value["precision_min"] or 'NULL',
-                    value["precision_max"] or 'NULL',
+                    value["precision_min"] or "NULL",
+                    value["precision_max"] or "NULL",
+                    ", ".join(set(value["grid_refer"])),
+                    value["latin_name"],
+                    ", ".join(set(value["recorder"])),
+                    ", ".join(set(value["survey_name"])),
                 ]
             )
             root_item.addChild(item)
@@ -175,7 +204,7 @@ class OutputDialog(QDialog):
         precision_dict = {}
         for value in unique_list:
             try:
-                meters = value.upper().replace('KM', '000').replace('M', '').replace(' ', '')
+                meters = value.upper().replace("KM", "000").replace("M", "").replace(" ", "")
                 meters = int(meters)
             except (ValueError, TypeError):  # handle not identified values
                 self.precision_unknown_values.add(value)
@@ -208,23 +237,38 @@ class OutputDialog(QDialog):
 
         vl.setCrs(self.layer.crs())
         dp = vl.dataProvider()
-        dp.addAttributes([QgsField("Common Name", QVariant.String),
-                          QgsField("Count", QVariant.Int),
-                          QgsField("Observation Date", QVariant.String),
-                          QgsField("Precision Min", QVariant.String),
-                          QgsField("Precision Max", QVariant.String),
-                          ])
+        dp.addAttributes(
+            [
+                QgsField("Common Name", QVariant.String),
+                QgsField("Count", QVariant.Int),
+                QgsField("Observation Date", QVariant.String),
+                QgsField("Precision Min", QVariant.String),
+                QgsField("Precision Max", QVariant.String),
+                QgsField("Grid Reference", QVariant.String),
+                QgsField("Latin Name", QVariant.String),
+                QgsField("Sample Recorder", QVariant.String),
+                QgsField("Survey Name", QVariant.String),
+            ]
+        )
         vl.updateFields()
 
         root_item = self.treeResults.invisibleRootItem()
         for i in range(root_item.childCount()):
             item = root_item.child(i)
             f = QgsFeature(dp.fields())
-            f.setAttributes([item.text(0),
-                             item.text(1),
-                             item.text(2),
-                             item.text(3),
-                             item.text(4)])
+            f.setAttributes(
+                [
+                    item.text(0),
+                    item.text(1),
+                    item.text(2),
+                    item.text(3),
+                    item.text(4),
+                    item.text(5),
+                    item.text(6),
+                    item.text(7),
+                    item.text(8),
+                ]
+            )
             f.setGeometry(geom)
             dp.addFeature(f)
 
@@ -237,6 +281,7 @@ class OutputDialog(QDialog):
 
 class TreeWidgetItem(QTreeWidgetItem):
     """Custom class to enable sorting 'Count' column - integers converted to string"""
+
     def __init__(self, parent=None):
         QTreeWidgetItem.__init__(self, parent)
 

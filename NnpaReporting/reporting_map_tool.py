@@ -1,16 +1,9 @@
-from qgis.PyQt.QtCore import Qt, QPoint
+from qgis.core import Qgis, QgsApplication, QgsCsException, QgsGeometry, QgsRectangle
+from qgis.gui import QgsIdentifyMenu, QgsMapTool, QgsRubberBand
+from qgis.PyQt.QtCore import QPoint, Qt
 from qgis.PyQt.QtGui import QColor
-from qgis.gui import QgsIdentifyMenu
-from qgis.core import (
-    Qgis,
-    QgsRectangle,
-    QgsGeometry,
-    QgsApplication,
-    QgsCsException
-)
-from qgis.gui import QgsMapTool, QgsRubberBand
 
-from .output_dialog import OutputDialog, IdentifyMode
+from .output_dialog import IdentifyMode, OutputDialog
 
 
 class ReportingMapTool(QgsMapTool):
@@ -75,7 +68,11 @@ class ReportingMapTool(QgsMapTool):
             identifyMenu.setExecWithSingleResult(True)
             results = QgsIdentifyMenu.findFeaturesOnCanvas(e, self.canvas(), [Qgis.GeometryType.Polygon])
             # remove results from our own layer
-            results = [r for r in results if r.mLayer.dataProvider().dataSourceUri() != self.layer.dataProvider().dataSourceUri()]
+            results = [
+                r
+                for r in results
+                if r.mLayer.dataProvider().dataSourceUri() != self.layer.dataProvider().dataSourceUri()
+            ]
             globalPos = self.canvas().mapToGlobal(QPoint(e.pos().x() + 5, e.pos().y() + 5))
             selectedFeatures = identifyMenu.exec(results, globalPos)
             if selectedFeatures and selectedFeatures[0].mFeature.hasGeometry():

@@ -1,9 +1,9 @@
 import csv
 from os import path
 
+from qgis.core import Qgis, QgsSettings
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QFileDialog, QMessageBox
-from qgis.core import QgsSettings, Qgis
 
 from .fields_dialog import FieldsDialog
 
@@ -22,11 +22,11 @@ class SettingsDialog(QDialog):
         self.ui.loadCsvButton.clicked.connect(self.load_csv)
 
         s = QgsSettings()
-        self.layer_uri = s.value('plugins/nnpa_reporting_plugin/layer_uri', None)
-        self.layer_provider = s.value('plugins/nnpa_reporting_plugin/layer_provider', None)
+        self.layer_uri = s.value("plugins/nnpa_reporting_plugin/layer_uri", None)
+        self.layer_provider = s.value("plugins/nnpa_reporting_plugin/layer_provider", None)
         self.ui.uriLineEdit.setText(self.layer_uri)
-        self.sensitive_species = s.value('plugins/nnpa_reporting_plugin/sensitive_species', [])
-        self.ui.sensitiveSpeciesTextEdit.setPlainText('\n'.join(self.sensitive_species))
+        self.sensitive_species = s.value("plugins/nnpa_reporting_plugin/sensitive_species", [])
+        self.ui.sensitiveSpeciesTextEdit.setPlainText("\n".join(self.sensitive_species))
 
     def on_pick_layer(self):
         layer = self.ui.layerComboBox.currentLayer()
@@ -45,15 +45,13 @@ class SettingsDialog(QDialog):
 
     def save_settings(self):
         s = QgsSettings()
-        s.setValue('plugins/nnpa_reporting_plugin/layer_uri', self.layer_uri)
-        s.setValue('plugins/nnpa_reporting_plugin/layer_provider', self.layer_provider)
-        s.setValue('plugins/nnpa_reporting_plugin/sensitive_species', self.sensitive_species)
+        s.setValue("plugins/nnpa_reporting_plugin/layer_uri", self.layer_uri)
+        s.setValue("plugins/nnpa_reporting_plugin/layer_provider", self.layer_provider)
+        s.setValue("plugins/nnpa_reporting_plugin/sensitive_species", self.sensitive_species)
 
     def load_csv(self):
         """Loads CSV file and adds items to the exclusion list"""
-        (file_name, _) = QFileDialog.getOpenFileName(
-            self, "Load CSV exclusion list", "~", "CSV Files (*.csv)"
-        )
+        (file_name, _) = QFileDialog.getOpenFileName(self, "Load CSV exclusion list", "~", "CSV Files (*.csv)")
 
         if file_name:
             with open(file_name, "r") as input_csv:
@@ -67,4 +65,4 @@ class SettingsDialog(QDialog):
                     QMessageBox.critical(self, "Error", "Field 'Common Name' was not found in the selected file")
                     return
 
-                self.ui.sensitiveSpeciesTextEdit.setPlainText('\n'.join(self.sensitive_species))
+                self.ui.sensitiveSpeciesTextEdit.setPlainText("\n".join(self.sensitive_species))
