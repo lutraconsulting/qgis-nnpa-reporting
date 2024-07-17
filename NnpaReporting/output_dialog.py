@@ -256,19 +256,7 @@ class OutputDialog(QDialog):
         for i in range(root_item.childCount()):
             item = root_item.child(i)
             f = QgsFeature(dp.fields())
-            f.setAttributes(
-                [
-                    item.text(0),
-                    item.text(1),
-                    item.text(2),
-                    item.text(3),
-                    item.text(4),
-                    item.text(5),
-                    item.text(6),
-                    item.text(7),
-                    item.text(8),
-                ]
-            )
+            f.setAttributes([item.text(i) for i in range(9)])
             f.setGeometry(geom)
             dp.addFeature(f)
 
