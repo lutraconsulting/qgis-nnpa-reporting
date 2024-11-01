@@ -14,10 +14,11 @@ class FieldsDialog(QDialog):
         self.ui = uic.loadUi(ui_file, self)
 
         for field in fields:
-            if field.type() != QVariant.String:
-                continue
-            for field_combo_box in self.field_selection_widgets:
-                field_combo_box.addItem(field.name())
+            if field.type() == QVariant.String:
+                for field_combo_box in self.field_selection_widgets:
+                    field_combo_box.addItem(field.name())
+            elif field.type() in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong, QVariant.Double):
+                self.ui.precision_cbo.addItem(field.name())
         for field_combo_box in self.field_selection_widgets:
             field_combo_box.setCurrentIndex(-1)
 

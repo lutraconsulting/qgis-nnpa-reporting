@@ -152,16 +152,16 @@ class OutputDialog(QDialog):
 
                 try:
                     if not dict_feature["precision_max"] or self.precision_values.index(
-                        sel_feat[self.precision_field_name]
-                    ) > self.precision_values.index(dict_feature["precision_max"]):
+                            str(sel_feat[self.precision_field_name])) > self.precision_values.index(
+                            str(dict_feature["precision_max"])):
                         dict_feature["precision_max"] = sel_feat[self.precision_field_name]
                 except ValueError:
                     pass
 
                 try:
                     if not dict_feature["precision_min"] or self.precision_values.index(
-                        sel_feat[self.precision_field_name]
-                    ) < self.precision_values.index(dict_feature["precision_min"]):
+                            str(sel_feat[self.precision_field_name])) < self.precision_values.index(
+                            str(dict_feature["precision_min"])):
                         dict_feature["precision_min"] = sel_feat[self.precision_field_name]
                 except ValueError:
                     pass
@@ -179,8 +179,8 @@ class OutputDialog(QDialog):
                     key,
                     str(value["count"]),
                     ", ".join(set(value["date"])),
-                    value["precision_min"] or "NULL",
-                    value["precision_max"] or "NULL",
+                    str(value["precision_min"]),
+                    str(value["precision_max"]),
                     ", ".join(set(value["grid_refer"])),
                     value["latin_name"],
                     ", ".join(set(value["recorder"])),
@@ -204,15 +204,16 @@ class OutputDialog(QDialog):
         precision_dict = {}
         for value in unique_list:
             try:
-                meters = value.upper().replace("KM", "000").replace("M", "").replace(" ", "")
-                meters = int(meters)
+                string_value = str(value)
+                meters = string_value.upper().replace("KM", "000").replace("M", "").replace(" ", "")
+                meters = float(meters)
             except (ValueError, TypeError):  # handle not identified values
-                self.precision_unknown_values.add(value)
+                self.precision_unknown_values.add(string_value)
                 continue
             except AttributeError:  # ignore null values
                 continue
 
-            precision_dict[meters] = value
+            precision_dict[meters] = string_value
 
         self.precision_values = [v[1] for v in sorted(precision_dict.items())]
 
